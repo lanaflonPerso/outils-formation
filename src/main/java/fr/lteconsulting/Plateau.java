@@ -1,5 +1,11 @@
 package fr.lteconsulting;
 
+import fr.lteconsulting.exploration.DefaultStrategies;
+import fr.lteconsulting.exploration.Exploration;
+import fr.lteconsulting.exploration.SearchNode;
+import fr.lteconsulting.model.Action;
+import fr.lteconsulting.model.State;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -16,7 +22,7 @@ public class Plateau
 	private final static int MARQUEUR = 0x3f3f3f3f;
 
 	// Lire le fichier NOM_FICHER
-	// et créer une instance de Plateau avec les pieces
+	// et crÃ©er une instance de Plateau avec les pieces
 	public static Plateau chargerPlateau()
 	{
 		// VERIFIER SI LE FICHIER EXISTE
@@ -25,7 +31,7 @@ public class Plateau
 		if( !file.exists() )
 			return null;
 
-		if( "!".equals( Saisie.saisie( "Une partie précédente a été sauvegardée, voulez vous l'utiliser? (! pour non, autre chose sinon" ) ) )
+		if( "!".equals( Saisie.saisie( "Une partie prÃ©cÃ©dente a Ã©tÃ© sauvegardÃ©e, voulez vous l'utiliser? (! pour non, autre chose sinon" ) ) )
 			return null;
 
 		FileInputStream fis = null;
@@ -192,5 +198,40 @@ public class Plateau
 				}
 			}
 		}
+	}
+
+	public Coup trouverMeilleurCoup( char pieceJoueur1, char pieceJoueur2 )
+	{
+		int[][] rawBoard = new int[largeur][hauteur];
+		for( int i = 0; i < largeur; i++ )
+		{
+			for( int j = 0; j < hauteur; j++ )
+			{
+				Piece piece = getPiece( i, j );
+				if( piece == null )
+					continue;
+
+				if( piece.getDisplayChar() == pieceJoueur1 )
+					rawBoard[i][j] = 1;
+				else if( piece.getDisplayChar() == pieceJoueur2 )
+					rawBoard[i][j] = 2;
+			}
+		}
+
+		State state = new State( rawBoard );
+
+		Exploration exploration = new Exploration( state.size() <= 3 ? DefaultStrategies.AllSubNodes : DefaultStrategies.RandomSubNodes );
+		SearchNode node = exploration.exploreLevel( state, 5000 );
+
+		SearchNode bestChoice = node.subNodes()
+				.stream()
+				.min( ( a, b ) -> Double.compare( b.score(), a.score() ) )
+				.orElse( null );
+
+		if( bestChoice == null )
+			return null;
+
+		Action action = bestChoice.action();
+		return new Coup( action.x(), action.y() );
 	}
 }
